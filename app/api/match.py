@@ -10,6 +10,7 @@ from app.services.matchmaking import (
     check_skill_match
 )
 from app.core.dependencies import require_permission
+from app.tasks.notification import notify_match
 
 router = APIRouter(prefix="/match", tags=["Match"])
 
@@ -17,12 +18,14 @@ router = APIRouter(prefix="/match", tags=["Match"])
 # ✅ SWIPE (LIKE / SKIP)
 @router.post("/swipe")
 def swipe(
-    from_user_id: int,
     to_user_id: int,
     action: str,
     db: Session = Depends(get_db),
     user=Depends(require_permission("initiate_match"))
 ):
+    # 🔐 Extract user from token (secure)
+    from_user_id = user.id
+
     if action not in ["like", "skip"]:
         raise HTTPException(400, "Invalid action")
 
@@ -43,6 +46,11 @@ def swipe(
             # 🔥 Check skill compatibility
             if check_skill_match(from_user, to_user):
                 match = create_match(db, from_user_id, to_user_id)
+
+                # 🚀 CELERY NOTIFICATIONS (NEW)
+                notify_match.delay(from_user_id, match.id)
+                notify_match.delay(to_user_id, match.id)
+
                 return {
                     "message": "🎉 Match created!",
                     "match_id": match.id

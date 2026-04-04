@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_permission
-from app.db.session import get_db
 from app.models.post import Post, PostLike, Comment
 from app.schemas.post import PostCreate, CommentCreate
 from app.db.deps import get_db

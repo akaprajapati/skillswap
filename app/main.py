@@ -23,3 +23,11 @@ app.include_router(notification_ws.router)
 @app.get("/")
 def root():
     return {"message": "SkillSwap API Running"}
+
+from alembic import command
+from alembic.config import Config
+
+@app.on_event("startup")
+def run_migrations():
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")

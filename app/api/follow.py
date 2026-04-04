@@ -5,6 +5,7 @@ from app.db.deps import get_db
 from app.models.follow import Follow
 from app.models.user import User
 from app.core.dependencies import require_permission
+from app.services.notification_service import create_notification
 
 router = APIRouter(prefix="/follow", tags=["Follow"])
 
@@ -39,6 +40,13 @@ def follow_user(
     )
     db.add(follow)
     db.commit()
+    
+    create_notification(
+    db,
+    user_id=user_id,
+    title="New Follower",
+    message=f"{user.email} started following you"
+    )
 
     return {"message": "Followed successfully"}
 

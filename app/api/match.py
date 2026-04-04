@@ -11,6 +11,7 @@ from app.services.matchmaking import (
 )
 from app.core.dependencies import require_permission
 from app.tasks.notification import notify_match
+from app.services.notification_service import create_notification
 
 router = APIRouter(prefix="/match", tags=["Match"])
 
@@ -48,9 +49,21 @@ def swipe(
                 match = create_match(db, from_user_id, to_user_id)
 
                 # 🚀 CELERY NOTIFICATIONS (NEW)
-                notify_match.delay(from_user_id, match.id)
-                notify_match.delay(to_user_id, match.id)
+                # notify_match.delay(from_user_id, match.id)
+                # notify_match.delay(to_user_id, match.id)
+                create_notification(
+                    db,
+                    from_user_id,
+                    "Match 🎉",
+                    "You have a new match!"
+                )
 
+                create_notification(
+                    db,
+                    to_user_id,
+                    "Match 🎉",
+                    "You have a new match!"
+                )
                 return {
                     "message": "🎉 Match created!",
                     "match_id": match.id

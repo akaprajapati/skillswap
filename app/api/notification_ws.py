@@ -10,6 +10,6 @@ async def notification_socket(websocket: WebSocket, user_id: int):
 
     try:
         while True:
-            await websocket.receive_text()  # keep alive
+            await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(user_id)

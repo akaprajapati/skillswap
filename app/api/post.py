@@ -5,7 +5,7 @@ from app.core.dependencies import require_permission
 from app.models.post import Post, PostLike, Comment
 from app.schemas.post import PostCreate, CommentCreate
 from app.db.deps import get_db
-
+from app.services.notification_service import create_notification
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -46,9 +46,16 @@ def like_post(
     user=Depends(require_permission("like_post")),
     db: Session = Depends(get_db)
 ):
+    post = db.query(Post).get(post_id)
     like = PostLike(user_id=user.id, post_id=post_id)
     db.add(like)
     db.commit()
+    create_notification(
+    db,
+    user_id=post.user_id,
+    title="Post Liked",
+    message=f"{user.email} liked your post"
+)
     return {"message": "Post liked"}
 
 
@@ -61,6 +68,7 @@ def comment_post(
     user=Depends(require_permission("comment_post")),
     db: Session = Depends(get_db)
 ):
+    post = db.query(Post).get(data.post_id)
     comment = Comment(
         user_id=user.id,
         post_id=data.post_id,
@@ -68,6 +76,12 @@ def comment_post(
     )
     db.add(comment)
     db.commit()
+    create_notification(
+    db,
+    user_id=post.user_id,
+    title="New Comment",
+    message=f"{user.email} commented on your post"
+    )
     return {"message": "Comment added"}
 
 @router.get("/feed/personalized")

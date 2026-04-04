@@ -69,3 +69,25 @@ def comment_post(
     db.add(comment)
     db.commit()
     return {"message": "Comment added"}
+
+@router.get("/feed/personalized")
+def personalized_feed(
+    user=Depends(require_permission("view_feed")),
+    db: Session = Depends(get_db)
+):
+    from app.models.follow import Follow
+
+    following = db.query(Follow).filter_by(
+        follower_id=user.id
+    ).all()
+
+    following_ids = [f.following_id for f in following]
+
+    if not following_ids:
+        return []
+
+    posts = db.query(Post).filter(
+        Post.user_id.in_(following_ids)
+    ).order_by(Post.id.desc()).all()
+
+    return posts

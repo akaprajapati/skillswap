@@ -25,7 +25,7 @@ SessionLocal = sessionmaker(
 
 # 🔥 Import ALL models BEFORE create_all
 # IMPORTANT: this ensures tables are registered
-from app.models import user, rbac, skill, match, chat, post, notification # adjust if needed
+from app.models import user, rbac, skill, match, chat, post, notification, follow  # adjust if needed
 
 # 🚀 Create tables
 Base.metadata.create_all(bind=engine)

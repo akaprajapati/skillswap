@@ -4,3 +4,4 @@ from .skill import *
 from .match import *
 from .chat import *
 from .notification import *
+from .post import *

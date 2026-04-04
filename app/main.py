@@ -29,17 +29,18 @@ from alembic import command
 from alembic.config import Config
 
 
+
 @app.on_event("startup")
 def run_migrations():
     alembic_cfg = Config()
 
-    # 🔥 FIX: manually set config path
     alembic_cfg.set_main_option("script_location", "alembic")
 
-    # 🔥 FIX: pass DATABASE_URL
-    alembic_cfg.set_main_option(
-        "sqlalchemy.url",
-        os.getenv("DATABASE_URL")
-    )
+    db_url = os.getenv("DATABASE_URL")
+
+    # 🔥 CRITICAL FIX
+    db_url = db_url.replace("%", "%%")
+
+    alembic_cfg.set_main_option("sqlalchemy.url", db_url)
 
     command.upgrade(alembic_cfg, "head")

@@ -7,7 +7,7 @@ from app.api import match
 from app.api import chat
 from app.api import notification
 from app.api import notification_ws
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="SkillSwap API")
 

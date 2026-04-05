@@ -1,8 +1,10 @@
-# 🚀 SkillSwap Frontend Flow (UI Integration Guide)
+# 🚀 SkillSwap Frontend Flow (Updated with Feed, Likes & Comments)
 
-## 🔐 AUTH FLOW
+---
 
-### 1. Register
+# 🔐 AUTH FLOW
+
+## Register
 
 POST `/auth/register`
 
@@ -16,7 +18,7 @@ POST `/auth/register`
 
 ---
 
-### 2. Login
+## Login
 
 POST `/auth/login`
 
@@ -35,16 +37,7 @@ Response:
 }
 ```
 
-👉 Store token in:
-
-* localStorage OR
-* memory (preferred)
-
----
-
-## 🔑 AUTH HEADER (IMPORTANT)
-
-All protected routes require:
+👉 Store token and send in all requests:
 
 ```http
 Authorization: Bearer <token>
@@ -52,50 +45,73 @@ Authorization: Bearer <token>
 
 ---
 
-# 👤 PROFILE / ONBOARDING FLOW
+# 👤 PROFILE / ONBOARDING
 
-## 3. Get Current User
+## Get Profile
 
 GET `/me/`
 
-Response:
+---
 
-```json
-{
-  "id": 1,
-  "email": "user@test.com",
-  "name": "User One",
-  "bio": null,
-  "offered_skills": [],
-  "wanted_skills": []
-}
-```
+## Update Profile
+
+PUT `/me/?name=Anand&bio=Backend Dev`
 
 ---
 
-## 🧠 LOGIC
+## Onboarding Logic
 
 If:
 
-```text
-bio == null OR skills empty
-```
+* bio is empty
+* no skills
 
-👉 Show **Onboarding Screen**
-
----
-
-## 4. Update Profile
-
-PUT `/me/?name=Anand&bio=Backend Developer`
+👉 Show onboarding screen
 
 ---
 
-# 🎯 SKILLS FLOW (MAIN UI)
+# 🎯 SKILLS FLOW
 
-## 5. Load Categories + Skills
+## Load Categories + Skills (MAIN API)
 
 GET `/skills/category-with-skills`
+
+---
+
+## UI STRUCTURE
+
+```
+Category Dropdown
+  → Skills (checkbox / chips)
+```
+
+---
+
+## Add Skills
+
+POST `/skills/offer`
+POST `/skills/want`
+
+---
+
+## Remove Skills
+
+DELETE `/skills/offer`
+DELETE `/skills/want`
+
+---
+
+## Get User Skills
+
+GET `/skills/user/{user_id}`
+
+---
+
+# 🏠 FEED (UPDATED)
+
+## Get Feed
+
+GET `/posts/`
 
 Response:
 
@@ -103,10 +119,18 @@ Response:
 [
   {
     "id": 1,
-    "name": "Programming",
-    "skills": [
-      { "id": 1, "name": "Python" },
-      { "id": 2, "name": "Java" }
+    "user_id": 1,
+    "content": "Hello world",
+    "created_at": "...",
+    "like_count": 5,
+    "comment_count": 2,
+    "comments": [
+      {
+        "id": 1,
+        "user_id": 2,
+        "content": "Nice post!",
+        "created_at": "..."
+      }
     ]
   }
 ]
@@ -114,70 +138,26 @@ Response:
 
 ---
 
-## 🧠 UI DESIGN
+## UI DESIGN
+
+Each post card:
 
 ```
-Category (Dropdown)
-   ↓
-List of skills (Checkbox / Chips)
-```
+User Info
+Post Content
 
----
+❤️ Like Count
+💬 Comment Count
 
-## 6. Add Offered Skill
+[ Like Button ]
+[ Comment Button ]
 
-POST `/skills/offer`
-
-```json
-{
-  "user_id": 1,
-  "skill_id": 1
-}
+Comments Section (expandable)
 ```
 
 ---
 
-## 7. Add Wanted Skill
-
-POST `/skills/want`
-
-```json
-{
-  "user_id": 1,
-  "skill_id": 2
-}
-```
-
----
-
-## 8. Remove Skill
-
-DELETE `/skills/offer`
-DELETE `/skills/want`
-
----
-
-## 9. Get User Skills
-
-GET `/skills/user/{user_id}`
-
----
-
-# 🏠 DASHBOARD / FEED
-
-## 10. Get Feed
-
-GET `/posts/`
-
----
-
-## 11. Personalized Feed
-
-GET `/posts/feed/personalized`
-
----
-
-# 📝 POSTS
+# 📝 POST ACTIONS
 
 ## Create Post
 
@@ -185,7 +165,7 @@ POST `/posts/`
 
 ```json
 {
-  "content": "Hello world"
+  "content": "My first post"
 }
 ```
 
@@ -197,59 +177,86 @@ POST `/posts/like/{post_id}`
 
 ---
 
-## Comment
+## Comment on Post
 
 POST `/posts/comment`
 
 ```json
 {
   "post_id": 1,
-  "content": "Nice post!"
+  "content": "Nice!"
 }
+```
+
+---
+
+## Get Single Post
+
+GET `/posts/{post_id}`
+
+👉 Use for:
+
+* Post detail page
+* Full comments view
+
+---
+
+# 🧠 FRONTEND BEHAVIOR
+
+---
+
+## LIKE FLOW
+
+```
+Click Like
+ → Call API
+ → Update like_count instantly (optimistic UI)
+```
+
+---
+
+## COMMENT FLOW
+
+```
+Open comment box
+ → Submit comment
+ → Append to UI list
+ → Increase comment_count
+```
+
+---
+
+## COMMENTS UI
+
+```
+Show first 2 comments
+[ View All Comments ]
 ```
 
 ---
 
 # 👥 FOLLOW SYSTEM
 
-## Follow
-
 POST `/follow?user_id=2`
-
-## Unfollow
-
 DELETE `/follow?user_id=2`
 
 ---
 
-# 💘 MATCH SYSTEM (TINDER STYLE)
-
-## Swipe
+# 💘 MATCH SYSTEM
 
 POST `/match/swipe?to_user_id=2&action=like`
-
-Actions:
-
-* like
-* skip
 
 ---
 
 # 🔔 NOTIFICATIONS
 
-## Get Notifications
-
 GET `/notifications/{user_id}`
-
----
-
-## Mark as Read
 
 POST `/notifications/read/{notif_id}`
 
 ---
 
-# ⚡ WEBSOCKET (REAL-TIME)
+# ⚡ WEBSOCKET
 
 ## Notifications
 
@@ -267,14 +274,16 @@ wss://your-app.onrender.com/ws/chat/{match_id}/{user_id}
 
 ---
 
-# 🎯 FULL UI FLOW
+# 🎯 FULL APP FLOW
+
+---
 
 ## AFTER LOGIN
 
 ```
 Login
  → /me
-   → if incomplete → onboarding
+   → incomplete → onboarding
    → else → dashboard
 ```
 
@@ -283,10 +292,11 @@ Login
 ## ONBOARDING
 
 ```
-1. Update name + bio
-2. Select offered skills
-3. Select wanted skills
-4. Save → Dashboard
+Fill:
+- Name
+- Bio
+- Offered skills
+- Wanted skills
 ```
 
 ---
@@ -294,21 +304,22 @@ Login
 ## DASHBOARD
 
 ```
-- Feed (posts)
-- Create post
-- Like / comment
-- Follow users
-- Swipe profiles
+Feed
+ → Posts
+ → Likes
+ → Comments
+ → Follow
+ → Swipe
 ```
 
 ---
 
-## PROFILE PAGE
+## PROFILE
 
 ```
-- View profile
-- Edit bio
-- Add/remove skills
+Edit:
+- Bio
+- Skills
 ```
 
 ---
@@ -316,29 +327,28 @@ Login
 ## NOTIFICATIONS
 
 ```
-- Real-time (WebSocket)
-- Bell icon 🔔
+Real-time bell 🔔
 ```
 
 ---
 
-# ⚠️ IMPORTANT NOTES
+# ⚠️ IMPORTANT RULES
 
 * Always send Authorization header
-* Do NOT allow user to create skills
-* Use category-with-skills API for UI
-* Avoid duplicate skill calls
+* Skills are admin-controlled
+* Use category-with-skills API
+* Prevent duplicate likes
 
 ---
 
-# 🎯 MVP COMPLETE
-
-You now have:
+# 🎯 MVP STATUS
 
 ✔ Auth
 ✔ Profile
-✔ Skills system
+✔ Skills
 ✔ Feed
+✔ Likes
+✔ Comments
 ✔ Match
 ✔ Chat
 ✔ Notifications
@@ -347,7 +357,10 @@ You now have:
 
 # 🚀 NEXT (OPTIONAL)
 
-* Profile picture upload
-* Search users
-* Skill-based recommendations
-* UI animations
+* Pagination (important)
+* Infinite scroll
+* Unlike feature
+* Replies to comments
+* Profile pictures
+
+---

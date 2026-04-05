@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_permission
@@ -26,7 +26,7 @@ def create_post(
 
 
 # -------------------
-# GET FEED
+# GET FEED (WITH COUNTS)
 # -------------------
 @router.get("/")
 def get_feed(
@@ -34,11 +34,70 @@ def get_feed(
     db: Session = Depends(get_db)
 ):
     posts = db.query(Post).order_by(Post.id.desc()).all()
-    return posts
+
+    result = []
+
+    for post in posts:
+        like_count = db.query(PostLike).filter_by(post_id=post.id).count()
+        comments = db.query(Comment).filter_by(post_id=post.id).all()
+
+        result.append({
+            "id": post.id,
+            "user_id": post.user_id,
+            "content": post.content,
+            "created_at": post.created_at,
+            "like_count": like_count,
+            "comment_count": len(comments),
+            "comments": [
+                {
+                    "id": c.id,
+                    "user_id": c.user_id,
+                    "content": c.content,
+                    "created_at": c.created_at
+                }
+                for c in comments
+            ]
+        })
+
+    return result
 
 
 # -------------------
-# LIKE POST
+# GET SINGLE POST
+# -------------------
+@router.get("/{post_id}")
+def get_post(
+    post_id: int,
+    db: Session = Depends(get_db)
+):
+    post = db.query(Post).get(post_id)
+
+    if not post:
+        raise HTTPException(404, "Post not found")
+
+    like_count = db.query(PostLike).filter_by(post_id=post.id).count()
+    comments = db.query(Comment).filter_by(post_id=post.id).all()
+
+    return {
+        "id": post.id,
+        "user_id": post.user_id,
+        "content": post.content,
+        "created_at": post.created_at,
+        "like_count": like_count,
+        "comments": [
+            {
+                "id": c.id,
+                "user_id": c.user_id,
+                "content": c.content,
+                "created_at": c.created_at
+            }
+            for c in comments
+        ]
+    }
+
+
+# -------------------
+# LIKE POST (NO DUPLICATE)
 # -------------------
 @router.post("/like/{post_id}")
 def like_post(
@@ -47,15 +106,26 @@ def like_post(
     db: Session = Depends(get_db)
 ):
     post = db.query(Post).get(post_id)
+
+    existing = db.query(PostLike).filter_by(
+        user_id=user.id,
+        post_id=post_id
+    ).first()
+
+    if existing:
+        return {"message": "Already liked"}
+
     like = PostLike(user_id=user.id, post_id=post_id)
     db.add(like)
     db.commit()
+
     create_notification(
-    db,
-    user_id=post.user_id,
-    title="Post Liked",
-    message=f"{user.email} liked your post"
-)
+        db,
+        user_id=post.user_id,
+        title="Post Liked",
+        message=f"{user.email} liked your post"
+    )
+
     return {"message": "Post liked"}
 
 
@@ -69,6 +139,7 @@ def comment_post(
     db: Session = Depends(get_db)
 ):
     post = db.query(Post).get(data.post_id)
+
     comment = Comment(
         user_id=user.id,
         post_id=data.post_id,
@@ -76,14 +147,20 @@ def comment_post(
     )
     db.add(comment)
     db.commit()
+
     create_notification(
-    db,
-    user_id=post.user_id,
-    title="New Comment",
-    message=f"{user.email} commented on your post"
+        db,
+        user_id=post.user_id,
+        title="New Comment",
+        message=f"{user.email} commented on your post"
     )
+
     return {"message": "Comment added"}
 
+
+# -------------------
+# PERSONALIZED FEED
+# -------------------
 @router.get("/feed/personalized")
 def personalized_feed(
     user=Depends(require_permission("view_feed")),
@@ -104,4 +181,27 @@ def personalized_feed(
         Post.user_id.in_(following_ids)
     ).order_by(Post.id.desc()).all()
 
-    return posts
+    result = []
+
+    for post in posts:
+        like_count = db.query(PostLike).filter_by(post_id=post.id).count()
+        comments = db.query(Comment).filter_by(post_id=post.id).all()
+
+        result.append({
+            "id": post.id,
+            "user_id": post.user_id,
+            "content": post.content,
+            "created_at": post.created_at,
+            "like_count": like_count,
+            "comment_count": len(comments),
+            "comments": [
+                {
+                    "id": c.id,
+                    "user_id": c.user_id,
+                    "content": c.content
+                }
+                for c in comments
+            ]
+        })
+
+    return result
